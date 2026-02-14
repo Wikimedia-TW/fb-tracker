@@ -104,7 +104,8 @@ function loadConfig() {
     settingsSheet = createSettingsSheet(spreadsheet);
   }
 
-  const data = settingsSheet.getRange('A2:B10').getValues();
+  const lastRow = settingsSheet.getLastRow();
+  const data = lastRow >= 2 ? settingsSheet.getRange(2, 1, lastRow - 1, 2).getValues() : [];
 
   CONFIG = {
     accessToken: '',
@@ -569,7 +570,9 @@ function updateLastRunTime(executeDate, statisticsDate) {
   
   if (!settingsSheet) return;
   
-  const data = settingsSheet.getRange('A2:A10').getValues();
+  const lastRow = settingsSheet.getLastRow();
+  if (lastRow < 2) return;
+  const data = settingsSheet.getRange(2, 1, lastRow - 1, 1).getValues();
   for (let i = 0; i < data.length; i++) {
     if (data[i][0] === '最後執行時間') {
       const message = `${formatDateTime(executeDate)} (統計日期: ${formatDate(statisticsDate)})`;
