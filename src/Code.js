@@ -50,9 +50,10 @@ function fetchAndUpdatePosts() {
     Logger.log('=== 開始執行台灣知識種子計劃粉專成效追蹤 ===');
     
     // 1. 載入設定
-    loadConfig();
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    loadConfig(spreadsheet);
     Logger.log(`已載入設定：追蹤週數 ${CONFIG.trackingWeeks} 週`);
-    
+
     // 2. 計算統計日期（無條件進位到週一）
     const today = new Date();
     const statisticsDate = getNextMonday(today);
@@ -72,11 +73,11 @@ function fetchAndUpdatePosts() {
     
     // 6. 更新每個月份的工作表
     for (const [monthKey, posts] of Object.entries(postsByMonth)) {
-      updateMonthSheet(monthKey, posts, statisticsDate);
+      updateMonthSheet(spreadsheet, monthKey, posts, statisticsDate);
     }
-    
+
     // 7. 更新設定工作表的「最後執行時間」
-    updateLastRunTime(today, statisticsDate);
+    updateLastRunTime(spreadsheet, today, statisticsDate);
     
     Logger.log('=== 執行完成 ===');
     
@@ -93,11 +94,11 @@ function fetchAndUpdatePosts() {
  *
  * 若「設定」工作表不存在，會自動建立並填入預設值。
  *
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} spreadsheet - 目標試算表
  * @throws {Error} Access Token 未填入或為預設值時拋出錯誤
  * @throws {Error} 粉專 ID 未填入時拋出錯誤
  */
-function loadConfig() {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+function loadConfig(spreadsheet) {
   let settingsSheet = spreadsheet.getSheetByName('設定');
 
   if (!settingsSheet) {
@@ -328,14 +329,14 @@ function formatMonthKey(date) {
  *
  * 若該月份的工作表不存在，會自動建立。
  *
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} spreadsheet - 目標試算表
  * @param {string} monthKey - 月份鍵值（YYYY-MM）
  * @param {Object[]} posts - 該月份的貼文資料陣列
  * @param {Date} statisticsDate - 統計日期（週一）
  */
-function updateMonthSheet(monthKey, posts, statisticsDate) {
+function updateMonthSheet(spreadsheet, monthKey, posts, statisticsDate) {
   Logger.log(`更新 ${monthKey} 工作表...`);
-  
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
   let sheet = spreadsheet.getSheetByName(monthKey);
   
   if (!sheet) {
@@ -561,11 +562,11 @@ function updateStatisticsRow(sheet, post, statisticsDate) {
 /**
  * 更新「設定」工作表中的「最後執行時間」欄位。
  *
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} spreadsheet - 目標試算表
  * @param {Date} executeDate - 實際執行日期
  * @param {Date} statisticsDate - 統計日期（週一）
  */
-function updateLastRunTime(executeDate, statisticsDate) {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+function updateLastRunTime(spreadsheet, executeDate, statisticsDate) {
   const settingsSheet = spreadsheet.getSheetByName('設定');
   
   if (!settingsSheet) return;
