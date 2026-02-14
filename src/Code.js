@@ -152,7 +152,7 @@ function createSettingsSheet(spreadsheet) {
   
   const defaultSettings = [
     ['Access Token', 'YOUR_ACCESS_TOKEN_HERE'],
-    ['粉專 ID', '1535242033367738'],
+    ['粉專 ID', ''],
     ['追蹤週數', '6'],
     ['執行頻率', '每週一早上 9:00'],
     ['最後執行時間', '']
