@@ -495,7 +495,9 @@ function createPostRows(sheet, post, statisticsDate) {
 function getNextMondayAfterPost(postDate) {
   const dayOfWeek = postDate.getDay();  // 0=週日, 1=週一, ..., 6=週六
   
-  // 計算到下一個週一的天數（一定要到「下一個」週一，不是當週）
+  // 一定要到「下一個」週一，即使發文當天是週一也要 +7 天，
+  // 因為發文當天的數據尚不完整，需等到下週一才開始統計。
+  // 這與 getNextMonday（週一回傳當天）的行為不同。
   const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
   
   const monday = new Date(postDate.getTime() + daysUntilMonday * 24 * 60 * 60 * 1000);
