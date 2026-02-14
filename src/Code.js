@@ -536,14 +536,7 @@ function updateStatisticsRow(sheet, post, statisticsDate) {
       const rowNumber = i + 2;
       
       // 更新按讚、留言、分享數、觸及人數（F、G、H、I 欄，第 6、7、8、9 欄）
-      sheet.getRange(rowNumber, 6).setValue(post.likes);
-      sheet.getRange(rowNumber, 7).setValue(post.comments);
-      sheet.getRange(rowNumber, 8).setValue(post.shares);
-      
-      // 更新觸及人數（如果 API 有回傳）
-      if (post.reach !== '') {
-        sheet.getRange(rowNumber, 9).setValue(post.reach);
-      }
+      sheet.getRange(rowNumber, 6, 1, 4).setValues([[post.likes, post.comments, post.shares, post.reach]]);
       
       Logger.log(`更新貼文 ${postId} 在 ${targetDate} 的數據：按讚 ${post.likes}、留言 ${post.comments}、分享 ${post.shares}、觸及 ${post.reach || '(無)'}`);
       return;
