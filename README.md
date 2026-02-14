@@ -49,21 +49,38 @@
 
 ## 安裝與設定
 
-1. 建立一個新的 Google Spreadsheet。
-2. 開啟「擴充功能」→「Apps Script」。
-3. 將 `src/main.gs` 的內容貼入指令碼編輯器。
-4. 執行 `fetchAndUpdatePosts()` 函數，系統會自動建立「設定」工作表。
-5. 在「設定」工作表中填入：
+1. 安裝相依套件：
+   ```bash
+   npm install
+   ```
+2. 登入 Google 帳號：
+   ```bash
+   npx clasp login --no-localhost
+   ```
+3. 建立一個新的 Google Spreadsheet，開啟「擴充功能」→「Apps Script」，
+   從「專案設定」頁面複製 Script ID。
+4. 複製 `.clasp.json.example` 為 `.clasp.json`，填入 Script ID：
+   ```bash
+   cp .clasp.json.example .clasp.json
+   ```
+5. 將程式碼推送到 Google Apps Script：
+   ```bash
+   npx clasp push
+   ```
+6. 在 Apps Script 編輯器中執行 `fetchAndUpdatePosts()` 函數，
+   系統會自動建立「設定」工作表。
+7. 在「設定」工作表中填入：
    - **Access Token**：從 [Facebook Graph API Explorer](https://developers.facebook.com/tools/explorer/) 取得
    - **粉專 ID**：Facebook 粉絲專頁的 ID
    - **追蹤週數**：每篇貼文要追蹤幾週（預設 6）
-6. 執行 `setupWeeklyTrigger()` 設定每週一自動執行。
+8. 執行 `setupWeeklyTrigger()` 設定每週一自動執行。
 
 
 ## 使用方式
 
 - **自動執行**：設定觸發器後，每週一早上 9:00 自動執行。
 - **手動執行**：在 Apps Script 編輯器中執行 `testRun()` 函數。
+- **部署更新**：修改本地程式碼後，執行 `npx clasp push` 推送到 Google Apps Script。
 
 
 ## 授權條款
