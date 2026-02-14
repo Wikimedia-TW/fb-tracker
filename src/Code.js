@@ -281,7 +281,7 @@ function fetchPostsFromFacebook(trackingRange) {
 
   } catch (error) {
     Logger.log(`Facebook API 錯誤：${error.message}`);
-    throw new Error(`無法從 Facebook 抓取資料：${error.message}`);
+    throw error;
   }
 }
 
