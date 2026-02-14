@@ -348,12 +348,6 @@ function updateMonthSheet(monthKey, posts, statisticsDate) {
   
   // 自動調整欄寬
   sheet.autoResizeColumns(1, 9);
-  
-  // 設定「貼文內容」欄位（C 欄，第 3 欄）為文字換行
-  const lastRow = sheet.getLastRow();
-  if (lastRow > 1) {
-    sheet.getRange(2, 3, lastRow - 1, 1).setWrap(true);
-  }
 }
 
 /**
@@ -490,7 +484,10 @@ function createPostRows(sheet, post) {
   
   // 設定垂直對齊方式為靠上
   sheet.getRange(startRow, 2, CONFIG.trackingWeeks, 2).setVerticalAlignment('top');
-  
+
+  // 設定「貼文內容」欄位（C 欄）為文字換行
+  sheet.getRange(startRow, 3, CONFIG.trackingWeeks, 1).setWrap(true);
+
   // 隱藏 A 欄（貼文 ID）- 只需設定一次，不用每次都設
   // 在 createMonthSheet 中處理
 }
