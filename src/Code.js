@@ -409,7 +409,7 @@ function processPost(sheet, post, statisticsDate) {
   
   if (existingRows.length === 0) {
     // 新貼文，建立 6 行（從當前統計日期開始）
-    createPostRows(sheet, post, statisticsDate);
+    createPostRows(sheet, post);
   }
   
   // 更新對應統計日期的那一列
@@ -447,9 +447,8 @@ function findPostRows(sheet, postId) {
  *
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 月份工作表
  * @param {Object} post - 貼文資料
- * @param {Date} statisticsDate - 統計日期（週一）
  */
-function createPostRows(sheet, post, statisticsDate) {
+function createPostRows(sheet, post) {
   Logger.log(`建立新貼文：${post.postId}`);
   
   const lastRow = sheet.getLastRow();
