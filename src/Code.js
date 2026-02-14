@@ -97,20 +97,19 @@ function fetchAndUpdatePosts() {
  * @throws {Error} 粉專 ID 未填入時拋出錯誤
  */
 function loadConfig() {
-  const spreadsheet = SpreadsheetApp.openById(getSpreadsheetId());
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   let settingsSheet = spreadsheet.getSheetByName('設定');
-  
+
   if (!settingsSheet) {
     settingsSheet = createSettingsSheet(spreadsheet);
   }
-  
+
   const data = settingsSheet.getRange('A2:B10').getValues();
-  
+
   CONFIG = {
     accessToken: '',
     pageId: '',
-    trackingWeeks: 6,
-    spreadsheetId: getSpreadsheetId()
+    trackingWeeks: 6
   };
   
   data.forEach(row => {
@@ -170,21 +169,6 @@ function createSettingsSheet(spreadsheet) {
   return sheet;
 }
 
-/**
- * 取得當前試算表的 ID。
- *
- * 優先使用 SpreadsheetApp.getActiveSpreadsheet()，
- * 若無法取得（例如由觸發器執行時）則回傳寫死的預設 ID。
- *
- * @returns {string} Spreadsheet ID
- */
-function getSpreadsheetId() {
-  try {
-    return SpreadsheetApp.getActiveSpreadsheet().getId();
-  } catch (e) {
-    return '10MY9Z-sHtlHnjthMfd1gAhcZl5OZa6RGi-_Z3StuG7c';
-  }
-}
 
 /**
  * 計算下一個週一（無條件進位）。
@@ -337,7 +321,7 @@ function formatMonthKey(date) {
 function updateMonthSheet(monthKey, posts, statisticsDate) {
   Logger.log(`更新 ${monthKey} 工作表...`);
   
-  const spreadsheet = SpreadsheetApp.openById(CONFIG.spreadsheetId);
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = spreadsheet.getSheetByName(monthKey);
   
   if (!sheet) {
@@ -576,7 +560,7 @@ function updateStatisticsRow(sheet, post, statisticsDate) {
  * @param {Date} statisticsDate - 統計日期（週一）
  */
 function updateLastRunTime(executeDate, statisticsDate) {
-  const spreadsheet = SpreadsheetApp.openById(CONFIG.spreadsheetId);
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const settingsSheet = spreadsheet.getSheetByName('設定');
   
   if (!settingsSheet) return;
