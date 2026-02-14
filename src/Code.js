@@ -241,34 +241,43 @@ function fetchPostsFromFacebook(trackingRange) {
   const fullUrl = `${url}?${queryString}`;
   
   try {
-    const response = UrlFetchApp.fetch(fullUrl);
-    const data = JSON.parse(response.getContentText());
-    
-    if (!data.data) {
-      throw new Error('API 回應格式錯誤');
-    }
-    
-    return data.data.map(post => {
-      // 提取觸及人數
-      let reach = '';
-      if (post.insights && post.insights.data && post.insights.data.length > 0) {
-        const impressionsData = post.insights.data.find(item => item.name === 'post_impressions_unique');
-        if (impressionsData && impressionsData.values && impressionsData.values.length > 0) {
-          reach = impressionsData.values[0].value;
-        }
+    const allPosts = [];
+    let nextUrl = fullUrl;
+
+    while (nextUrl) {
+      const response = UrlFetchApp.fetch(nextUrl);
+      const data = JSON.parse(response.getContentText());
+
+      if (!data.data) {
+        throw new Error('API 回應格式錯誤');
       }
-      
-      return {
-        postId: post.id,
-        message: post.message || '(無文字內容)',
-        createdTime: new Date(post.created_time),
-        likes: post.likes ? post.likes.summary.total_count : 0,
-        comments: post.comments ? post.comments.summary.total_count : 0,
-        shares: post.shares ? post.shares.count : 0,
-        reach: reach  // 觸及人數（自動抓取）
-      };
-    });
-    
+
+      data.data.forEach(post => {
+        // 提取觸及人數
+        let reach = '';
+        if (post.insights && post.insights.data && post.insights.data.length > 0) {
+          const impressionsData = post.insights.data.find(item => item.name === 'post_impressions_unique');
+          if (impressionsData && impressionsData.values && impressionsData.values.length > 0) {
+            reach = impressionsData.values[0].value;
+          }
+        }
+
+        allPosts.push({
+          postId: post.id,
+          message: post.message || '(無文字內容)',
+          createdTime: new Date(post.created_time),
+          likes: post.likes ? post.likes.summary.total_count : 0,
+          comments: post.comments ? post.comments.summary.total_count : 0,
+          shares: post.shares ? post.shares.count : 0,
+          reach: reach
+        });
+      });
+
+      nextUrl = data.paging && data.paging.next ? data.paging.next : null;
+    }
+
+    return allPosts;
+
   } catch (error) {
     Logger.log(`Facebook API 錯誤：${error.message}`);
     throw new Error(`無法從 Facebook 抓取資料：${error.message}`);
