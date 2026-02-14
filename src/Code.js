@@ -162,10 +162,14 @@ function createSettingsSheet(spreadsheet) {
   sheet.setColumnWidth(1, 150);
   sheet.setColumnWidth(2, 400);
   
-  sheet.getRange('A8').setValue('說明：');
-  sheet.getRange('A9').setValue('1. Access Token：從 Facebook Graph API Explorer 取得');
-  sheet.getRange('A10').setValue('2. 追蹤週數：每篇貼文追蹤幾週（預設 6 週）');
-  sheet.getRange('A11').setValue('3. 統計日期：執行日期無條件進位到週一');
+  const notesStartRow = defaultSettings.length + 3;
+  const notes = [
+    ['說明：'],
+    ['1. Access Token：從 Facebook Graph API Explorer 取得'],
+    ['2. 追蹤週數：每篇貼文追蹤幾週（預設 6 週）'],
+    ['3. 統計日期：執行日期無條件進位到週一']
+  ];
+  sheet.getRange(notesStartRow, 1, notes.length, 1).setValues(notes);
   
   return sheet;
 }
