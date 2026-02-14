@@ -38,7 +38,12 @@ let CONFIG = null;
 // ===== 主要功能 =====
 
 /**
- * 主函數：抓取貼文並更新數據
+ * 主函數：抓取粉專貼文並更新數據到 Google Spreadsheet。
+ *
+ * 載入設定、計算統計日期、從 Facebook Graph API 抓取貼文，
+ * 按月份分組寫入對應工作表，並更新最後執行時間。
+ *
+ * @throws {Error} 設定不完整或 Facebook API 呼叫失敗時拋出錯誤
  */
 function fetchAndUpdatePosts() {
   try {
@@ -84,7 +89,12 @@ function fetchAndUpdatePosts() {
 }
 
 /**
- * 載入設定工作表的參數
+ * 從「設定」工作表載入系統參數到全域變數 CONFIG。
+ *
+ * 若「設定」工作表不存在，會自動建立並填入預設值。
+ *
+ * @throws {Error} Access Token 未填入或為預設值時拋出錯誤
+ * @throws {Error} 粉專 ID 未填入時拋出錯誤
  */
 function loadConfig() {
   const spreadsheet = SpreadsheetApp.openById(getSpreadsheetId());
@@ -125,7 +135,10 @@ function loadConfig() {
 }
 
 /**
- * 建立設定工作表
+ * 建立「設定」工作表並填入預設值與說明。
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} spreadsheet - 目標試算表
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet} 新建的設定工作表
  */
 function createSettingsSheet(spreadsheet) {
   // 插入到最後一個位置（不指定索引，預設就是最後）
@@ -158,7 +171,12 @@ function createSettingsSheet(spreadsheet) {
 }
 
 /**
- * 取得 Spreadsheet ID
+ * 取得當前試算表的 ID。
+ *
+ * 優先使用 SpreadsheetApp.getActiveSpreadsheet()，
+ * 若無法取得（例如由觸發器執行時）則回傳寫死的預設 ID。
+ *
+ * @returns {string} Spreadsheet ID
  */
 function getSpreadsheetId() {
   try {
@@ -169,9 +187,12 @@ function getSpreadsheetId() {
 }
 
 /**
- * 計算下一個週一（無條件進位）
- * 如果今天是週一，返回今天
- * 否則返回下一個週一
+ * 計算下一個週一（無條件進位）。
+ *
+ * 如果當天是週一，返回當天 00:00:00；否則返回下一個週一 00:00:00。
+ *
+ * @param {Date} date - 基準日期
+ * @returns {Date} 對應的週一日期（時間為 00:00:00）
  */
 function getNextMonday(date) {
   const dayOfWeek = date.getDay(); // 0=週日, 1=週一, ..., 6=週六
@@ -191,7 +212,12 @@ function getNextMonday(date) {
 }
 
 /**
- * 計算追蹤範圍（過去 N 週）
+ * 計算追蹤範圍（從統計日期往前推 N 週）。
+ *
+ * @param {number} weeks - 追蹤週數
+ * @param {Date} fromDate - 統計日期（結束日期）
+ * @returns {{startDate: Date, endDate: Date, startTimestamp: number, endTimestamp: number}}
+ *   追蹤範圍，包含起迄日期及對應的 Unix 時間戳（秒）
  */
 function getTrackingRange(weeks, fromDate) {
   const startDate = new Date(fromDate.getTime() - weeks * 7 * 24 * 60 * 60 * 1000);
@@ -205,7 +231,13 @@ function getTrackingRange(weeks, fromDate) {
 }
 
 /**
- * 從 Facebook API 抓取貼文
+ * 從 Facebook Graph API 抓取指定時間範圍內的粉專貼文。
+ *
+ * @param {{startTimestamp: number, endTimestamp: number}} trackingRange - 追蹤範圍（Unix 時間戳）
+ * @returns {{postId: string, message: string, createdTime: Date,
+ *            likes: number, comments: number, shares: number,
+ *            reach: (number|string)}[]} 貼文資料陣列
+ * @throws {Error} API 呼叫失敗或回應格式錯誤時拋出錯誤
  */
 function fetchPostsFromFacebook(trackingRange) {
   const url = `https://graph.facebook.com/v21.0/${CONFIG.pageId}/posts`;
@@ -260,7 +292,10 @@ function fetchPostsFromFacebook(trackingRange) {
 }
 
 /**
- * 按發文月份分組
+ * 將貼文依發文月份分組。
+ *
+ * @param {{createdTime: Date}[]} posts - 貼文資料陣列
+ * @returns {Object.<string, Object[]>} 以月份鍵值（YYYY-MM）為 key 的分組結果
  */
 function groupPostsByMonth(posts) {
   const grouped = {};
@@ -279,7 +314,10 @@ function groupPostsByMonth(posts) {
 }
 
 /**
- * 格式化月份鍵值 (YYYY-MM)
+ * 將日期格式化為月份鍵值。
+ *
+ * @param {Date} date - 日期
+ * @returns {string} 格式為 "YYYY-MM" 的字串
  */
 function formatMonthKey(date) {
   const year = date.getFullYear();
@@ -288,7 +326,13 @@ function formatMonthKey(date) {
 }
 
 /**
- * 更新指定月份的工作表
+ * 更新指定月份的工作表，寫入或更新貼文數據。
+ *
+ * 若該月份的工作表不存在，會自動建立。
+ *
+ * @param {string} monthKey - 月份鍵值（YYYY-MM）
+ * @param {Object[]} posts - 該月份的貼文資料陣列
+ * @param {Date} statisticsDate - 統計日期（週一）
  */
 function updateMonthSheet(monthKey, posts, statisticsDate) {
   Logger.log(`更新 ${monthKey} 工作表...`);
@@ -319,7 +363,13 @@ function updateMonthSheet(monthKey, posts, statisticsDate) {
 }
 
 /**
- * 建立月份工作表
+ * 建立月份工作表，設定標題列並隱藏貼文編號欄。
+ *
+ * 工作表插入在最前面，使新月份排在「設定」工作表之前。
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} spreadsheet - 目標試算表
+ * @param {string} monthKey - 月份鍵值（YYYY-MM），作為工作表名稱
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet} 新建的月份工作表
  */
 function createMonthSheet(spreadsheet, monthKey) {
   // 插入在索引 0 的位置（最前面）
@@ -351,7 +401,11 @@ function createMonthSheet(spreadsheet, monthKey) {
 }
 
 /**
- * 處理單篇貼文
+ * 處理單篇貼文：若為新貼文則建立追蹤列，再更新當週數據。
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 月份工作表
+ * @param {Object} post - 貼文資料
+ * @param {Date} statisticsDate - 統計日期（週一）
  */
 function processPost(sheet, post, statisticsDate) {
   const postId = post.postId;
@@ -369,7 +423,11 @@ function processPost(sheet, post, statisticsDate) {
 }
 
 /**
- * 找到指定貼文 ID 的所有行號
+ * 在工作表中找到指定貼文 ID 的所有行號。
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 月份工作表
+ * @param {string} postId - Facebook 貼文 ID
+ * @returns {number[]} 該貼文所佔的行號陣列（1-based），若不存在則回傳空陣列
  */
 function findPostRows(sheet, postId) {
   const lastRow = sheet.getLastRow();
@@ -388,7 +446,14 @@ function findPostRows(sheet, postId) {
 }
 
 /**
- * 為新貼文建立 6 行（從發文日期進位到下一個週一開始）
+ * 為新貼文建立追蹤列（預設 6 行，對應追蹤週數）。
+ *
+ * 從發文日期進位到下一個週一開始，每週一行。
+ * 發文時間與貼文內容欄位會合併儲存格。
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 月份工作表
+ * @param {Object} post - 貼文資料
+ * @param {Date} statisticsDate - 統計日期（週一）
  */
 function createPostRows(sheet, post, statisticsDate) {
   Logger.log(`建立新貼文：${post.postId}`);
@@ -438,7 +503,10 @@ function createPostRows(sheet, post, statisticsDate) {
 }
 
 /**
- * 取得發文日期之後的下一個週一（不包含當天）
+ * 取得發文日期之後的下一個週一（不包含當天，即使當天是週一）。
+ *
+ * @param {Date} postDate - 發文日期
+ * @returns {Date} 下一個週一日期（時間為 00:00:00）
  */
 function getNextMondayAfterPost(postDate) {
   const dayOfWeek = postDate.getDay();  // 0=週日, 1=週一, ..., 6=週六
@@ -452,7 +520,13 @@ function getNextMondayAfterPost(postDate) {
 }
 
 /**
- * 更新指定統計日期的那一列
+ * 更新指定貼文在指定統計日期的數據列（按讚、留言、分享、觸及人數）。
+ *
+ * 以貼文 ID 與統計日期比對找到對應的列，若找不到則跳過（記錄 log）。
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 月份工作表
+ * @param {Object} post - 貼文資料
+ * @param {Date} statisticsDate - 統計日期（週一）
  */
 function updateStatisticsRow(sheet, post, statisticsDate) {
   const postId = post.postId;
@@ -496,7 +570,10 @@ function updateStatisticsRow(sheet, post, statisticsDate) {
 }
 
 /**
- * 更新最後執行時間
+ * 更新「設定」工作表中的「最後執行時間」欄位。
+ *
+ * @param {Date} executeDate - 實際執行日期
+ * @param {Date} statisticsDate - 統計日期（週一）
  */
 function updateLastRunTime(executeDate, statisticsDate) {
   const spreadsheet = SpreadsheetApp.openById(CONFIG.spreadsheetId);
@@ -515,21 +592,29 @@ function updateLastRunTime(executeDate, statisticsDate) {
 }
 
 /**
- * 格式化日期 (YYYY-MM-DD)
+ * 將日期格式化為 "YYYY-MM-DD" 字串。
+ *
+ * @param {Date} date - 日期
+ * @returns {string} 格式化後的日期字串
  */
 function formatDate(date) {
   return Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 }
 
 /**
- * 格式化日期時間 (YYYY-MM-DD HH:mm:ss)
+ * 將日期格式化為 "YYYY-MM-DD HH:mm:ss" 字串。
+ *
+ * @param {Date} date - 日期
+ * @returns {string} 格式化後的日期時間字串
  */
 function formatDateTime(date) {
   return Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
 }
 
 /**
- * 發送錯誤通知
+ * 發送錯誤通知（目前僅記錄 log，可擴充為 Email 通知）。
+ *
+ * @param {Error} error - 錯誤物件
  */
 function sendErrorNotification(error) {
   Logger.log(`發生錯誤：${error.message}`);
@@ -537,7 +622,9 @@ function sendErrorNotification(error) {
 }
 
 /**
- * 手動執行測試
+ * 手動執行測試，直接呼叫主函數。
+ *
+ * 用於在 Apps Script 編輯器中手動觸發執行。
  */
 function testRun() {
   Logger.log('=== 開始測試執行 ===');
@@ -545,7 +632,9 @@ function testRun() {
 }
 
 /**
- * 設定每週自動執行觸發器
+ * 設定每週一早上 9:00 自動執行的觸發器。
+ *
+ * 會先刪除所有既有觸發器，再建立新的週觸發器。
  */
 function setupWeeklyTrigger() {
   const triggers = ScriptApp.getProjectTriggers();
